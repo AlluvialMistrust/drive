@@ -32,7 +32,7 @@ jobs:
           <html lang="en">
           <head>
           <meta charset="UTF-8">
-          <title>Auto Gallery (GitHub Pages)</title>
+          <title>Auto Gallery, by Siddharth</title>
           <style>
             body { background: #181818; margin: 0; font-family: sans-serif; }
             .gallery {
