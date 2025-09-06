@@ -1,23 +1,42 @@
-name: Auto-update images.json
+name: Auto-update event JSONs
 
 on:
   push:
     paths:
       - 'pics/**'
 
+permissions:
+  contents: write
+
 jobs:
-  update-images:
+  update-event-jsons:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: List images
+
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+
+      - name: Find event folders and update JSONs
         run: |
-          ls pics > images.txt
-          jq -R -s -c 'split("\n")[:-1]' images.txt > images.json
-      - name: Commit images.json
+          for event_dir in pics/*; do
+            if [ -d "$event_dir" ]; then
+              event=$(basename "$event_dir")
+              jsonfile="pics/$event/$event.json"
+              imglist=()
+              for imgfile in "$event_dir"/*.{jpg,jpeg,png,gif,bmp,webp}; do
+                [ -e "$imgfile" ] || continue
+                imglist+=("\"$(basename "$imgfile")\"")
+              done
+              # create or overwrite JSON file with image list array
+              echo "[${imglist[*]}]" > "$jsonfile"
+            fi
+          done
+
+      - name: Commit and push event.json updates
         run: |
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
-          git add images.json
-          git commit -m "Update images.json" || exit 0
+          git add pics/*/*.json
+          git commit -m "Update event.json files with image lists" || exit 0
           git push
