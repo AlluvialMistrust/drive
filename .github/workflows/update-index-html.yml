@@ -1,146 +1,95 @@
-name: Generate event HTML galleries
+name: Update index.html for event galleries
 
 on:
   push:
     paths:
-      - 'pics/**'
       - '*.json'
 
 permissions:
   contents: write
 
 jobs:
-  generate-html:
+  update-index:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Create/update <event>.html for each event
+      - name: Generate index.html with buttons for all events
         run: |
-          for event_dir in pics/*; do
-            if [ -d "$event_dir" ]; then
-              event=$(basename "$event_dir")
-              htmlfile="${event}.html"
-              cat > "$htmlfile" <<EOF
-<!DOCTYPE html>
+          echo '<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>${event} Gallery</title>
-  <style>
-    body { background: #181818; margin: 0; font-family: sans-serif; }
-    .gallery {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-      grid-gap: 16px;
-      padding: 32px;
-    }
-    .gallery img {
-      width: 170px;
-      height: 170px;
-      object-fit: cover;
-      border-radius: 7px;
-      box-shadow: 0 2px 8px #111;
-      cursor: pointer;
-      transition: transform 0.18s;
-    }
-    .gallery img:hover { transform: scale(1.05); }
-    .modal {
-      display: none; position: fixed; z-index: 40; top: 0; left: 0; width: 100vw; height: 100vh;
-      align-items: center; justify-content: center;
-    }
-    .modal.active { display: flex; }
-    .modal-bg {
-      position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;
-      background: rgba(32,32,32,0.93); backdrop-filter: blur(8px);
-      z-index: 41;
-    }
-    .modal-content {
-      position: relative; z-index: 45; background: none; padding: 0; border-radius: 7px;
-      display: flex; flex-direction: column; align-items: center;
-    }
-    .modal-content img {
-      max-width: 85vw; max-height: 75vh; border-radius: 7px; box-shadow: 0 4px 26px #222;
-      margin-bottom: 18px;
-    }
-    .download-btn {
-      display: inline-block; padding: 9px 28px; margin-top: 0;
-      background: #3488ee; color: #fff; border-radius: 4px;
-      text-decoration: none; font-size: 1.05em;
-      font-weight: bold; transition: background 0.22s;
-      box-shadow: 0 0.5px 2px #333;
-    }
-    .download-btn:hover { background: #2562a8; color: #e0edff; }
-    .close-modal {
-      position: absolute; top: 6px; right: 15px;
-      background: transparent; color: #fff; font-size: 2.5em;
-      border: none; cursor: pointer; z-index: 50;
-      filter: drop-shadow(0 1px 6px #000a);
-    }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Event Galleries</title>
+<style>
+  body {
+    background: #121212;
+    color: #eee;
+    font-family: Segoe UI, Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  h1 {
+    margin-bottom: 36px;
+    font-weight: 700;
+    font-size: 2.4em;
+    text-shadow: 0 0 8px #2266ffaa;
+  }
+  .event-buttons {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 20px;
+    width: 100%;
+    max-width: 900px;
+  }
+  .event-btn {
+    background: linear-gradient(145deg, #3355ee 0%, #2244cc 100%);
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    padding: 20px 0;
+    font-size: 1.2em;
+    font-weight: 600;
+    cursor: pointer;
+    text-align: center;
+    box-shadow: 0 4px 20px #2233ccaa;
+    text-decoration: none;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    user-select: none;
+  }
+  .event-btn:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 7px 30px #4466ffe0;
+  }
+  footer {
+    margin-top: 56px;
+    font-size: 0.9em;
+    color: #555aaa;
+  }
+</style>
 </head>
 <body>
+  <h1>Event Galleries</h1>
+  <div class="event-buttons">' > index.html
 
-  <div class="gallery" id="gallery"></div>
-
-  <div class="modal" id="img-modal">
-    <div class="modal-bg"></div>
-    <div class="modal-content">
-      <button class="close-modal" id="closeModal">&times;</button>
-      <img id="modalImg" src="" alt="">
-      <a id="downloadBtn" class="download-btn" href="" download>Download</a>
-    </div>
-  </div>
-
-  <script>
-    fetch('${event}.json')
-      .then(response => response.json())
-      .then(images => {
-        const gallery = document.getElementById('gallery');
-        gallery.innerHTML = images.map(img =>
-          \`<img src="pics/${event}/\${img}" alt="" data-src="pics/${event}/\${img}">\`
-        ).join('');
-        const modal = document.getElementById('img-modal');
-        const modalImg = document.getElementById('modalImg');
-        const downloadBtn = document.getElementById('downloadBtn');
-        const closeModal = document.getElementById('closeModal');
-        const modalBg = document.querySelector('.modal-bg');
-
-        gallery.addEventListener('click', e => {
-          if (e.target.tagName === 'IMG') {
-            modal.classList.add('active');
-            modalImg.src = e.target.getAttribute('data-src');
-            downloadBtn.href = e.target.getAttribute('data-src');
-          }
-        });
-
-        closeModal.addEventListener('click', () => {
-          modal.classList.remove('active');
-          modalImg.src = "";
-        });
-        modalBg.addEventListener('click', () => {
-          modal.classList.remove('active');
-          modalImg.src = "";
-        });
-        window.addEventListener('keydown', e => {
-          if (e.key === 'Escape') {
-            modal.classList.remove('active');
-            modalImg.src = "";
-          }
-        });
-      });
-  </script>
-
-</body>
-</html>
-EOF
-            fi
+          for jsonfile in *.json; do
+            event="${jsonfile%.json}"
+            echo "    <a href=\"$event.html\" class=\"event-btn\">$event</a>" >> index.html
           done
 
-      - name: Commit and push HTML updates
+          echo '  </div>
+  <footer>Gallery auto-generated by GitHub Actions</footer>
+</body>
+</html>' >> index.html
+
+      - name: Commit index.html
         run: |
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
-          git add *.html
-          git commit -m "Update event HTML galleries" || exit 0
+          git add index.html
+          git commit -m "Update main index.html with event buttons" || exit 0
           git push
