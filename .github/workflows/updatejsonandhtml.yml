@@ -78,6 +78,7 @@ jobs:
               </div>
             </div>
           <script>
+          const eventfolder = "'${eventfolder}'";
           // Loads pics from ${jsonfile}
           fetch('${jsonfile}')
             .then(res => res.json())
