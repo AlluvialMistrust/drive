@@ -106,7 +106,7 @@ jobs:
           window.addEventListener('keydown', (e)=>{ if(e.key==='Escape') {modal.classList.remove('active'); modalImg.src="";} });
           </script>
           </body>
-          </html>' > "$indexfile"'
+          </html>' > "$indexfile"
           fi
           done
           
