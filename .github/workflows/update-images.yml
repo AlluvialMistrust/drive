@@ -1,4 +1,4 @@
-name: Auto-update event JSONs
+name: Auto-update event galleries and index
 
 on:
   push:
@@ -9,7 +9,7 @@ permissions:
   contents: write
 
 jobs:
-  update-event-jsons:
+  update-galleries-and-index:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -17,26 +17,241 @@ jobs:
       - name: Install jq
         run: sudo apt-get update && sudo apt-get install -y jq
 
-      - name: Find event folders and update JSONs
+      - name: Generate event JSONs and HTML galleries
         run: |
+          events=()
           for event_dir in pics/*; do
             if [ -d "$event_dir" ]; then
               event=$(basename "$event_dir")
-              jsonfile="pics/$event/$event.json"
+              events+=("$event")
+              jsonfile="$event.json"
+              htmlfile="$event.html"
               imglist=()
               for imgfile in "$event_dir"/*.{jpg,jpeg,png,gif,bmp,webp}; do
                 [ -e "$imgfile" ] || continue
                 imglist+=("\"$(basename "$imgfile")\"")
               done
-              # create or overwrite JSON file with image list array
+              # Update JSON file in root
               echo "[${imglist[*]}]" > "$jsonfile"
-            fi
+
+              # Create/overwrite event HTML file
+              cat > "$htmlfile" <<EOF
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>${event} Gallery</title>
+<style>
+  body { background: #1a1a1a; margin: 0; font-family: system-ui, sans-serif; color: #fff; }
+  header {
+    padding: 24px 32px; text-align: center; background: #222; font-size: 1.9em; font-weight: 600;
+    box-shadow: inset 0 -3px 8px #0009;
+  }
+  .gallery {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 18px;
+    padding: 32px;
+    max-width: 1200px;
+    margin: 16px auto 48px;
+  }
+  .gallery img {
+    width: 158px; height: 158px; object-fit: cover;
+    border-radius: 9px; box-shadow: 0 2px 8px #222a;
+    cursor: pointer; transition: box-shadow 0.15s, transform 0.12s;
+    background: #222;
+  }
+  .gallery img:hover { box-shadow: 0 4px 22px #3388ffaa;  transform: scale(1.04);}
+  .modal {
+    display: none; position: fixed; inset: 0; z-index: 12;
+    align-items: center; justify-content: center;
+  }
+  .modal.active { display: flex; }
+  .modal-bg {
+    position: fixed; inset: 0;
+    background: rgba(22,22,22,0.83);
+    backdrop-filter: blur(10px);
+    z-index: 15;
+    animation: bgIn 0.14s;
+  }
+  @keyframes bgIn { from { opacity: 0; } }
+  .modal-content {
+    position: relative; z-index: 21;
+    display: flex; flex-direction: column; align-items: center;
+  }
+  .modal-content img {
+    max-width: min(800px, 90vw);
+    max-height: 77vh;
+    border-radius: 10px;
+    background: #111;
+    margin-bottom: 16px;
+    box-shadow: 0 6px 24px #000b;
+  }
+  .download-btn {
+    background: #3388ff; color: #fff; border-radius: 5px;
+    padding: 10px 32px; font-size: 1.1em; font-weight: 500;
+    border: none; cursor: pointer; margin-top: 3px;
+    box-shadow: 0 0.5px 2px #0017;
+    text-decoration: none;
+    transition: background 0.15s;
+    display: inline-block;
+  }
+  .download-btn:hover { background: #2260a8; }
+  .close-modal {
+    position: absolute; top: 10px; right: 27px; 
+    color: #fff; background: none; border: none;
+    font-size: 2.3em; cursor: pointer;
+    z-index: 35; font-family: inherit;
+    filter: drop-shadow(0 2px 10px #000b);
+  }
+  @media (max-width:499px) {
+    .gallery { padding: 14px; gap: 9px; }
+    .gallery img { width: 98px; height: 98px; }
+  }
+  a.home-link {
+    display: inline-block;
+    margin: 12px 0 16px;
+    font-size: 1em;
+    color: #ccc;
+    text-decoration: none;
+    background: #444;
+    padding: 8px 18px;
+    border-radius: 6px;
+    box-shadow: inset 0 0 5px #0008;
+    transition: background 0.2s, color 0.2s;
+  }
+  a.home-link:hover { background: #2266ff; color: #e0eaff; }
+</style>
+</head>
+<body>
+  <header>${event} Gallery</header>
+  <a href="index.html" class="home-link">&larr; Back to Events</a>
+  <div class="gallery" id="gallery"></div>
+
+  <div class="modal" id="img-modal">
+    <div class="modal-bg"></div>
+    <div class="modal-content">
+      <button class="close-modal" title="Close" id="closeModal">&times;</button>
+      <img id="modalImg" src="" alt="fullsize" />
+      <a class="download-btn" id="downloadBtn" href="" download>Download</a>
+    </div>
+  </div>
+
+  <script>
+  fetch('${event}.json')
+    .then(r => r.json())
+    .then(images => {
+      const gallery = document.getElementById('gallery');
+      gallery.innerHTML = images.map(img =>
+        \`<img src="pics/${event}/\${img}" alt="" data-src="pics/${event}/\${img}">\`
+      ).join('');
+    });
+
+  const gallery = document.getElementById('gallery');
+  const modal = document.getElementById('img-modal');
+  const modalImg = document.getElementById('modalImg');
+  const downloadBtn = document.getElementById('downloadBtn');
+  const closeModal = document.getElementById('closeModal');
+  const modalBg = document.querySelector('.modal-bg');
+
+  gallery.addEventListener('click', e => {
+    if (e.target.tagName === 'IMG') {
+      modal.classList.add('active');
+      modalImg.src = e.target.getAttribute('data-src');
+      downloadBtn.href = e.target.getAttribute('data-src');
+    }
+  });
+  closeModal.addEventListener('click', () => { modal.classList.remove('active'); modalImg.src=""; });
+  modalBg.addEventListener('click', () => { modal.classList.remove('active'); modalImg.src=""; });
+  window.addEventListener('keydown', e => { if (e.key === 'Escape') { modal.classList.remove('active'); modalImg.src=""; } });
+  </script>
+</body>
+</html>
+EOF
+            done
+
+          # Create the main index.html with buttons for each event
+          cat > index.html <<HTMLEOF
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Event Galleries</title>
+<style>
+  body {
+    background: #121212;
+    color: #eee;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  h1 {
+    margin-bottom: 36px;
+    font-weight: 700;
+    font-size: 2.4em;
+    text-shadow: 0 0 8px #2266ffaa;
+  }
+  .event-buttons {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 20px;
+    width: 100%;
+    max-width: 900px;
+  }
+  .event-btn {
+    background: linear-gradient(145deg, #3355ee 0%, #2244cc 100%);
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    padding: 20px 0;
+    font-size: 1.2em;
+    font-weight: 600;
+    cursor: pointer;
+    text-align: center;
+    box-shadow: 0 4px 20px #2233ccaa;
+    text-decoration: none;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    user-select: none;
+  }
+  .event-btn:hover,
+  .event-btn:focus {
+    transform: translateY(-4px);
+    box-shadow: 0 7px 30px #4466ffe0;
+  }
+  footer {
+    margin-top: 56px;
+    font-size: 0.9em;
+    color: #555aaa;
+  }
+</style>
+</head>
+<body>
+  <h1>Event Galleries</h1>
+  <div class="event-buttons">
+HTMLEOF
+
+          # Add buttons
+          for event in "${events[@]}"; do
+            echo "    <a href=\"$event.html\" class=\"event-btn\">$event</a>" >> index.html
           done
 
-      - name: Commit and push event.json updates
+          # Finish index.html
+          cat >> index.html <<HTMLEOF
+  </div>
+  <footer>Gallery auto-generated by GitHub Actions &nbsp;&bull;&nbsp; &copy; $(date +'%Y')</footer>
+</body>
+</html>
+HTMLEOF
+
+      - name: Commit and push changes
         run: |
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
-          git add pics/*/*.json
-          git commit -m "Update event.json files with image lists" || exit 0
+          git add *.json *.html index.html
+          git commit -m "Update galleries and main index with event buttons" || exit 0
           git push
