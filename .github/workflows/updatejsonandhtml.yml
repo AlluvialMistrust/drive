@@ -3,7 +3,7 @@ name: Update index.html for event galleries
 on:
   push:
     paths:
-      - 'pics/*'
+      - 'pics/**'
 
 permissions:
   contents: write
