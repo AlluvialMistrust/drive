@@ -1,0 +1,23 @@
+name: Auto-update images.json
+
+on:
+  push:
+    paths:
+      - 'pics/**'
+
+jobs:
+  update-images:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: List images
+        run: |
+          ls pics > images.txt
+          jq -R -s -c 'split("\n")[:-1]' images.txt > images.json
+      - name: Commit images.json
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add images.json
+          git commit -m "Update images.json" || exit 0
+          git push
