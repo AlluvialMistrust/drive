@@ -37,10 +37,4 @@ jobs:
               # Write image list JSON file
               echo "[${imglist[*]}]" > "$jsonfile"
 
-              # Create event gallery HTML file
-              cat > "$htmlfile" <<EOF
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width
+              # Create event gallery
