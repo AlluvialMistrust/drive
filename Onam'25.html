@@ -50,12 +50,12 @@
 <script>
 const eventfolder = "Onam'25";
 // Loads pics from ${jsonfile}
-fetch(Onam'25.json)
+fetch("Onam'25.json")
   .then(res => res.json())
   .then(images => {
     const gallery = document.getElementById(gallery);
     gallery.innerHTML = images.map(img =>
-      `<img src="pics/${eventfolder}/${img}" alt="" data-src="pics/${eventfolder}/${img}">`).join();
+      `<img src="pics/Onam'25/${img}" alt="" data-src="pics/Onam'25/${img}">`).join();
   });
 
 const gallery = document.getElementById(gallery);
