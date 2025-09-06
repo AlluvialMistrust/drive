@@ -25,31 +25,14 @@ jobs:
                 [ -e "$imgfile" ] || continue
                 imglist+=("\"$(basename "$imgfile")\"")
               done
-              # Overwrite or create <event>.json in repo root
               echo "[${imglist[*]}]" > "$jsonfile"
-
-              # (Optional) Create <event>.html in repo root
-              # Uncomment below to add HTML generation
-              # cat > "${event}.html" <<EOF
-              # <!DOCTYPE html>
-              # <html>
-              # <head><meta charset="UTF-8"><title>${event} Gallery</title></head>
-              # <body>
-              # <h1>${event} Gallery</h1>
-              # <ul>
-              # $(for img in "${imglist[@]}"; do echo "<li><img src='pics/${event}/${img//\"}' width='200'></li>"; done)
-              # </ul>
-              # </body>
-              # </html>
-              # EOF
-
             fi
           done
 
-      - name: Commit and push event.json (and html) updates
+      - name: Commit and push event.json updates
         run: |
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
-          git add *.json *.html
-          git commit -m "Update event JSON and HTML files" || exit 0
+          git add *.json
+          git commit -m "Update event JSON files" || exit 0
           git push
