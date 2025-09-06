@@ -1,4 +1,4 @@
-name: Update index.html for event galleries
+name: Update event.html for event galleries
 
 on:
   push:
@@ -146,10 +146,11 @@ jobs:
           done
           
 
-      - name: Commit index.html
+      - name: Commit event HTML files
         run: |
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
-          git add index.html
-          git commit -m "Update main index.html with event buttons" || exit 0
+          git add *.html
+          git add *.json
+          git commit -m "Update images" || exit 0
           git push
