@@ -1,4 +1,4 @@
-name: Auto-update event galleries and index
+name: Update event JSONs
 
 on:
   push:
@@ -9,32 +9,28 @@ permissions:
   contents: write
 
 jobs:
-  update-galleries-and-index:
+  event-json:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Install jq
+      - name: Create event JSON files
         run: |
-          sudo apt-get update
-          sudo apt-get install -y jq
-
-      - name: Generate event JSONs and HTML galleries
-        run: |
-          # Collect events
-          events=()
           for event_dir in pics/*; do
             if [ -d "$event_dir" ]; then
               event=$(basename "$event_dir")
-              events+=("$event")
-              jsonfile="$event.json"
-              htmlfile="$event.html"
+              jsonfile="${event}.json"
               imglist=()
               for imgfile in "$event_dir"/*.{jpg,jpeg,png,gif,bmp,webp}; do
                 [ -e "$imgfile" ] || continue
                 imglist+=("\"$(basename "$imgfile")\"")
               done
-              # Write image list JSON file
               echo "[${imglist[*]}]" > "$jsonfile"
-
-              # Create event gallery
+            fi
+          done
+      - name: Commit JSONs
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add *.json
+          git commit -m "Update event JSON files" || exit 0
+          git push
